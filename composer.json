@@ -1,0 +1,24 @@
+{
+    "name": "gambit/pcntl",
+    "description": "Object-oriented PCNTL Job for PHP",
+    "keywords": ["pcntl", "fork", "php fork", "yii pcntl"],
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Efin Yuri",
+            "email": "php.gambit@yandex.ru"
+        },
+        {
+            "name": "Community contributors",
+            "homepage": "https://github.com/yuriEfin/pcntl/blob/master/README.md"
+        }
+    ],
+    "require": {
+        "php": ">=5.4.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "gambit\\pcntl\\": "src/"
+        }
+    }
+}
