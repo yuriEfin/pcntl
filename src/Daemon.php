@@ -14,6 +14,7 @@ use gambit\pcntl\Job;
  */
 class Daemon
 {
+    public static $stop_server = false;
 
     /**
      * Max count child process
@@ -79,12 +80,8 @@ class Daemon
             self::$_instance = new self();
         }
 
-        // init instance property
-        $this->init();
-
         return self::$_instance;
     }
-
     /**
      * stack process
      * @var array
@@ -120,32 +117,24 @@ class Daemon
             }
             $this->pathPid = $value;
         } else {
-            throw new Exception('Failed path "' . $value . '" or is not writable');
+            throw new Exception('Failed path "'.$value.'" or is not writable');
         }
     }
 
     public function getAlias($alias)
     {
-        // -v 2.*
-        if (property_exists(Yii, 'app') && method_exists(Yii, 'getAlias')) {
-            $alias = Yii::getAlias($alias);
-        }
-        // -v 1.1.*
-        if (method_exists(Yii, 'getPathOfAlias')) {
-            $alias = Yii::getPathOfAlias($alias);
-        }
-        return $alias;
+        return Yii::getPathOfAlias($alias);
     }
 
     public function init()
     {
         $this->createPathPid();
         //регистрируем обработчик
-        pcntl_signal(SIGTERM, function ($signo) {
-            global $stop_server;
+        pcntl_signal(SIGTERM,
+            function ($signo) {
             switch ($signo) {
                 case SIGTERM:
-                    $stop_server = true;
+                    self::$stop_server = true;
                     // handle shutdown tasks
                     echo "Caught SIGTERM...\n";
                     exit;
@@ -166,33 +155,49 @@ class Daemon
         return $this;
     }
 
+    public function setMaxChild($countProcess)
+    {
+        $this->maxChildProcess = $countProcess;
+        return $this;
+    }
+
     public function getMaxChild()
     {
         return $this->maxChildProcess;
     }
 
-    public function runJob(Job $job)
+    public function runJob($jobs)
     {
 
-
         self::$child_processes = array();
-
-        while (!$stop_server) {
+        while (!self::$stop_server) {
             $countChild = count(self::$child_processes);
-            if (!$stop_server and ( $countChild < $this->getMaxChild())) {
+            if (!self::$stop_server && ($countChild <= $this->getMaxChild())) {
                 //TODO: получаем задачу
                 //плодим дочерний процесс
                 $this->pid = pcntl_fork();
                 if ($this->pid == -1) {
                     //TODO: ошибка - не смогли создать процесс
-                } elseif ($pid) {
-                    $job->pid = $this->pid;
+                } elseif ($child_pid) {
                     //процесс создан
-                    self::$child_processes[$pid] = true;
+                    self::$child_processes[$child_pid] = serialize($job);
+                    file_put_contents(Yii::getPathOfAlias('application.runtime').'/pid_list_process_mail_'.$child_pid.'.log',
+                        print_r(self::$child_processes[$child_pid], true),
+                        FILE_APPEND);
                 } else {
-                    $this->pid = getmypid();
-                    //TODO: дочерний процесс - тут рабочая нагрузка
-                    exit;
+                    foreach ($jobs as $job) {
+                        //TODO: дочерний процесс - тут рабочая нагрузка
+                        $this->pid = getmypid();
+                        $job->pid  = $this->pid;
+                        file_put_contents(Yii::getPathOfAlias('application.runtime').'/pid_list_process_mail_'.$job->pid.'.log',
+                            print_r(self::$child_processes, true), FILE_APPEND);
+
+                        exec($job->jobCommand, $output, $ret);
+
+                        file_put_contents(Yii::getPathOfAlias('application.runtime').'/output_list_process_mail_'.$job->pid.'.log',
+                            print_r($output, true), FILE_APPEND);
+                    }
+                    exit(0);
                 }
             } else {
                 //чтоб не гонять цикл вхолостую

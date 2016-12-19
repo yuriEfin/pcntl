@@ -6,7 +6,6 @@ namespace gambit\pcntl;
 
 class Job
 {
-
     /**
      * pid current job
      * @var type 
@@ -23,7 +22,9 @@ class Job
      * Name command
      * @var string
      */
-    public $name = '';
+    public $name    = '';
+    public $context = null;
+    public $params  = [];
 
     /**
      * 
@@ -37,8 +38,15 @@ class Job
      */
     public $runner = 'php';
 
-    public function run()
+    /**
+     * @param CConsoleCommand $context
+     * @param string $command - name methode $context
+     * @param array $params - params method $context
+     */
+    public function __construct(\CConsoleCommand $context=null, $command, $params)
     {
-        echo 'Run process pid: ' . $this->pid;
+        $this->context    = $context;
+        $this->jobCommand = $command;
+        $this->params     = $params;
     }
 }
