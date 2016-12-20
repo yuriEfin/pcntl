@@ -21,7 +21,7 @@ class Daemon
      * Default 10
      * @var integer 
      */
-    public $maxChildProcess = 10;
+    public $maxChildProcess = 5;
 
     /**
      * Sleep php
@@ -177,27 +177,37 @@ class Daemon
                 //плодим дочерний процесс
                 $this->pid = pcntl_fork();
                 if ($this->pid == -1) {
-                    //TODO: ошибка - не смогли создать процесс
-                } elseif ($child_pid) {
+                    die('could not fork');
+                } elseif ($this->pid) {
                     //процесс создан
-                    self::$child_processes[$child_pid] = serialize($job);
-                    file_put_contents(Yii::getPathOfAlias('application.runtime').'/pid_list_process_mail_'.$child_pid.'.log',
-                        print_r(self::$child_processes[$child_pid], true),
+                    self::$child_processes[$this->pid] = true;
+                    file_put_contents(Yii::getPathOfAlias('application.runtime').'/pid_list_process_mail_'.$this->pid.'.log',
+                        print_r(self::$child_processes[$this->pid], true),
                         FILE_APPEND);
-                } else {
                     foreach ($jobs as $job) {
+                        $status    = 0;
                         //TODO: дочерний процесс - тут рабочая нагрузка
                         $this->pid = getmypid();
                         $job->pid  = $this->pid;
                         file_put_contents(Yii::getPathOfAlias('application.runtime').'/pid_list_process_mail_'.$job->pid.'.log',
                             print_r(self::$child_processes, true), FILE_APPEND);
 
-                        exec($job->jobCommand, $output, $ret);
-
-                        file_put_contents(Yii::getPathOfAlias('application.runtime').'/output_list_process_mail_'.$job->pid.'.log',
-                            print_r($output, true), FILE_APPEND);
+                        if (stripos($job->jobCommand, 'yiic') === false) {
+                            $methodJob = $job->jobCommand;
+                            // job item
+                            $job->context->$methodJob($job->params);
+                        } else {
+                            exec($job->jobCommand, $output, $ret);
+                        }
+                        
+                        if ($ret) {
+                            file_put_contents(Yii::getPathOfAlias('application.runtime').'/output_list_process_mail_'.$job->pid.'.log',
+                                print_r($output, true), FILE_APPEND);
+                        }
                     }
-                    exit(0);
+                } else {
+
+                    exit(1);
                 }
             } else {
                 //чтоб не гонять цикл вхолостую
