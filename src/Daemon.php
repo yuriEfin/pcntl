@@ -1,6 +1,5 @@
 <?php
-//Без этой директивы PHP не будет перехватывать сигналы
-declare(ticks = 1);
+declare(ticks = 1); //Без этой директивы PHP не будет перехватывать сигналы
 
 namespace gambit\pcntl;
 
@@ -177,35 +176,32 @@ class Daemon
                 //плодим дочерний процесс
                 $this->pid = pcntl_fork();
                 if ($this->pid == -1) {
-                    die('could not fork');
+                    exit('Не удалось создать форк');
                 } elseif ($this->pid) {
-                    //процесс создан
-                    self::$child_processes[$this->pid] = true;
-                    file_put_contents(Yii::getPathOfAlias('application.runtime').'/pid_list_process_mail_'.$this->pid.'.log',
-                        print_r(self::$child_processes[$this->pid], true),
-                        FILE_APPEND);
+                    exit(1);
+                } else {
                     foreach ($jobs as $job) {
-                        $status    = 0;
+                        //процесс создан
+                        self::$child_processes[$this->pid] = true;
+                        $status                            = 0;
                         //TODO: дочерний процесс - тут рабочая нагрузка
-                        $this->pid = getmypid();
-                        $job->pid  = $this->pid;
-                        file_put_contents(Yii::getPathOfAlias('application.runtime').'/pid_list_process_mail_'.$job->pid.'.log',
+                        $this->pid                         = getmypid();
+                        $job->pid                          = $this->pid;
+                        file_put_contents(Yii::getPathOfAlias('application.runtime').'/pid_list_process_mail_PIDS.log',
                             print_r(self::$child_processes, true), FILE_APPEND);
 
-                        if (stripos($job->jobCommand, 'yiic') === false) {
-                            $methodJob = $job->jobCommand;
+                        if (stripos($job->command, 'yiic') === false) {
+                            $methodJob = $job->command;
                             // job item
                             $job->context->$methodJob($job->params);
                         } else {
-                            exec($job->jobCommand, $output, $ret);
-                        }
-                        
-                        if ($ret) {
-                            file_put_contents(Yii::getPathOfAlias('application.runtime').'/output_list_process_mail_'.$job->pid.'.log',
-                                print_r($output, true), FILE_APPEND);
+                            echo $job->command.PHP_EOL;
+                            print_r(self::$child_processes);
+                            exec('nohup '.$job->command.'>/dev/null 2>&1 &',
+                                $output, $ret);
+                            print_r($output);
                         }
                     }
-                } else {
 
                     exit(1);
                 }
