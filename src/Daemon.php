@@ -20,7 +20,7 @@ class Daemon
      * Default 10
      * @var integer 
      */
-    public $maxChildProcess = 5;
+    public $maxChildProcess = 15;
 
     /**
      * Sleep php
@@ -58,34 +58,19 @@ class Daemon
      */
     public static $result = [];
 
-    private function __construct()
-    {
-        // ... private 
-    }
-
-    private function __clone()
-    {
-        // ... private 
-    }
-
-    private function __wakeup()
-    {
-        // ... private 
-    }
-
-    public static function getInstance()
-    {
-        if (!self::$_instance) {
-            self::$_instance = new self();
-        }
-
-        return self::$_instance;
-    }
     /**
      * stack process
      * @var array
      */
     public static $child_processes = [];
+
+    public function getInstance()
+    {
+        if (!self::$_instance) {
+            self::$_instance = new self();
+        }
+        return self::$_instance;
+    }
 
     public function createPathPid()
     {
@@ -167,7 +152,9 @@ class Daemon
 
     public function runJob($jobs)
     {
-
+        if (!is_array($jobs)) {
+            $jobs = [$jobs];
+        }
         self::$child_processes = array();
         while (!self::$stop_server) {
             $countChild = count(self::$child_processes);
@@ -185,25 +172,19 @@ class Daemon
                         self::$child_processes[$this->pid] = true;
                         $status                            = 0;
                         //TODO: дочерний процесс - тут рабочая нагрузка
-                        $this->pid                         = getmypid();
-                        $job->pid                          = $this->pid;
-                        file_put_contents(Yii::getPathOfAlias('application.runtime').'/pid_list_process_mail_PIDS.log',
-                            print_r(self::$child_processes, true), FILE_APPEND);
-
-                        if (stripos($job->command, 'yiic') === false) {
-                            $methodJob = $job->command;
-                            // job item
-                            $job->context->$methodJob($job->params);
-                        } else {
-                            echo $job->command.PHP_EOL;
-                            print_r(self::$child_processes);
-                            exec('nohup '.$job->command.'>/dev/null 2>&1 &',
-                                $output, $ret);
-                            print_r($output);
+                        $this->pid                         = $job->pidDaemon                    = getmypid();
+                        // job item
+                        if ($job instanceof Job) {
+                            try {
+                                $job->context->job = $job;
+                                echo $job->pidDaemon.PHP_EOL;
+                                $job->run();
+                            } catch (Exception $ex) {
+                                dump($ex->getMessage());
+                            }
                         }
                     }
-
-                    exit(1);
+                    return;
                 }
             } else {
                 //чтоб не гонять цикл вхолостую
