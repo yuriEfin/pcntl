@@ -1,17 +1,17 @@
 <?php
 //Без этой директивы PHP не будет перехватывать сигналы
-declare(ticks = 1);
+declare(ticks=1);
 
 namespace gambit\pcntl;
 
 class JobErrorException extends \CException
 {
-    
+
 }
 
 class Job
 {
-    const TABLE_PARAMS        = 'crm_job_params';
+    const TABLE_PARAMS = 'crm_job_params';
     const TABLE_PARAMS_BY_TYP = 'crm_job_type_params';
 
     /**
@@ -38,9 +38,9 @@ class Job
 
     /**
      * pid current job
-     * @var type 
+     * @var type
      */
-    public $pid       = null;
+    public $pid = null;
     public $pidDaemon = null;
 
     /**
@@ -58,12 +58,12 @@ class Job
      * path folder save pid file
      * @var string
      */
-    public $pathPid     = 'application.runtime';
+    public $pathPid = 'application.runtime';
     public $pidFilename = 'crm_job_pid_{id}.pid';
 
     /**
      * Global runner command
-     * @var type 
+     * @var type
      */
     public $runner = 'php';
 
@@ -74,40 +74,40 @@ class Job
 
     public function getIsRunning()
     {
-        return (bool) $this->is_running;
+        return (bool)$this->is_running;
     }
 
     public function getIsDisabled()
     {
-        return (bool) $this->is_disabled;
+        return (bool)$this->is_disabled;
     }
 
     public function getPidFilename()
     {
         $this->pidFilename = strtr($this->pidFilename,
             [
-            '{id}' => $this->id,
-        ]);
+                '{id}' => $this->id,
+            ]);
         return $this->pidFilename;
     }
 
     public function setCommand()
     {
         foreach ($this->paramsJobCommand as $label => $v) {
-            $this->command .= ' --'.$label.'='.$v.' ';
+            $this->command .= ' --' . $label . '=' . $v . ' ';
         }
     }
 
     public function setPid()
     {
         $this->pid = md5($this->command);
-        file_put_contents($this->context->getPathPid().'/'.$this->getPidFilename(),
+        file_put_contents($this->context->getPathPid() . '/' . $this->getPidFilename(),
             $this->pid);
     }
 
     public function hasPid()
     {
-        return file_exists($this->context->getPathPid().'/'.$this->getPidFilename());
+        return file_exists($this->context->getPathPid() . '/' . $this->getPidFilename());
     }
 
     public function setModel()
@@ -133,6 +133,12 @@ class Job
         $this->model->update();
     }
 
+    public function updateDateStart($time)
+    {
+        \Yii::app()->db->createCommand('UPDATE crm_job_params SET `param_value`=:time WHERE param_id=:id')
+            ->execute([':time' => date('Y-m-d', $time), ':id' => 2, 'job_id' => $this->id]);
+    }
+
     public function setInActive()
     {
         $this->model = \CrmJob::model()->findByPk($this->id);
@@ -143,7 +149,7 @@ class Job
         ]);
         $this->model->update();
 
-        @unlink($this->context->getPathPid().'/'.$this->pidFilename);
+        @unlink($this->context->getPathPid() . '/' . $this->pidFilename);
     }
 
     /**
