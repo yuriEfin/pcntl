@@ -135,8 +135,12 @@ class Job
 
     public function updateDateStart($time)
     {
-        \Yii::app()->db->createCommand('UPDATE crm_job_params SET `param_value`=:time WHERE param_id=:id')
-            ->execute([':time' => date('Y-m-d', $time), ':id' => 2, 'job_id' => $this->id]);
+        \Yii::app()->db->createCommand('UPDATE crm_job_params SET `param_value`=:time WHERE param_id=:param_id AND id=:id')
+            ->execute([
+                ':time' => date('Y-m-d', $time),
+                ':param_id' => 2,
+                ':id' => $this->id
+            ]);
     }
 
     public function setInActive()
