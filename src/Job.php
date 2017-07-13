@@ -152,7 +152,7 @@ class Job
             'is_running' => 0,
         ]);
         $this->model->update();
-        $this->context->unlockProcess($this->job->id);
+        $this->context->unlockProcess($this->id);
 
         @unlink($this->context->getPathPid() . '/' . $this->pidFilename);
     }
