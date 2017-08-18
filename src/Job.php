@@ -121,7 +121,12 @@ class Job
             $this->context->logger->log($ex, $this->context);
         }
     }
-
+    public function updateDateStart(){
+	\Yii::app()->db->createCommand('UPDATE crm_job_params SET param_value=:currentDate WHERE job_id=:id AND param_id=2')->execute([
+	':id'=>$this->id,
+	':currentDate'=>date("Y-m-d",time()),
+	]);
+    }
     public function setActive()
     {
 
