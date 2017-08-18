@@ -67,6 +67,12 @@ class Job
      */
     public $runner = 'php';
 
+    public function updateDateStart(){
+	return Yii::app()->db->createCommand('UPDATE crm_job_params SET param_value=:date WHERE job_id=:id AND param_id=2')->execute([
+	  ':date' => date("Y-m-d",time()),
+	  ':id' => $this->id,
+	]);
+    }
     public function setParams()
     {
         return $this->paramsJobCommand = $this->context->getJobParams($this->id);
